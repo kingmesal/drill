@@ -15,21 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.drill.exec.store.dfs;
+package org.apache.drill.exec.expr.fn.impl.gis;
 
-import org.apache.drill.common.logical.FormatPluginConfig;
-import org.apache.drill.common.logical.StoragePluginConfig;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class FileSystemFormatConfig<T extends FormatPluginConfig> extends StoragePluginConfig {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(FileSystemFormatConfig.class);
-
-  public T getFormatConfig(){
-    return null;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    return this == o;
-  }
-
+@RunWith(Suite.class)
+@SuiteClasses({ TestGeometryFunctions.class })
+public class GISTestSuite {
+  private static final Logger logger = LoggerFactory.getLogger(GISTestSuite.class);
 }

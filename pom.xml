@@ -42,7 +42,8 @@
       Apache Hive 1.0.0. If the version is changed, make sure the jars and their dependencies are updated.
     -->
     <hive.version>1.0.0</hive.version>
-    <hadoop.version>2.4.1</hadoop.version>
+    <hadoop.version>2.7.1</hadoop.version>
+    <fmpp.version>0.9.14</fmpp.version>
   </properties>
 
   <scm>
@@ -112,6 +113,18 @@
     </repository>
 
     <repository>
+      <id>dremio-releases</id>
+      <name>Dremio Drill Third Party Artifacts</name>
+      <url>http://repo.dremio.com/release/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>    
+
+    <repository>
       <id>mapr-drill-thirdparty</id>
       <name>MapR Drill Third Party Artifacts</name>
       <url>http://repository.mapr.com/nexus/content/repositories/drill/</url>
@@ -156,7 +169,6 @@
           </execution>
         </executions>
         <configuration>
-
           <excludeSubprojects>false</excludeSubprojects>
           <excludes>
             <exclude>**/*.log</exclude>
@@ -199,22 +211,22 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
         <version>2.12.1</version>
+        <configuration>
+          <includes>**/*.java</includes>
+          <encoding>UTF-8</encoding>
+          <failsOnError>true</failsOnError>
+          <consoleOutput>true</consoleOutput>
+          <includeResources>true</includeResources>
+          <includeTestResources>true</includeTestResources>
+          <resourceIncludes>**/*.properties,**/*.conf,**/*.json,**/*.xml</resourceIncludes>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          <configLocation>src/main/resources/checkstyle-config.xml</configLocation>
+          <suppressionsLocation>src/main/resources/checkstyle-suppressions.xml</suppressionsLocation>
+        </configuration>
         <executions>
           <execution>
             <id>checkstyle-validation</id>
-            <phase>validate</phase>
-            <configuration>
-              <includes>**/*.java</includes>
-              <encoding>UTF-8</encoding>
-              <failsOnError>true</failsOnError>
-              <consoleOutput>true</consoleOutput>
-              <includeResources>true</includeResources>
-              <includeTestResources>true</includeTestResources>
-              <resourceIncludes>**/*.properties,**/*.conf,**/*.json,**/*.xml</resourceIncludes>
-              <includeTestSourceDirectory>true</includeTestSourceDirectory>
-              <configLocation>src/main/resources/checkstyle-config.xml</configLocation>
-              <suppressionsLocation>src/main/resources/checkstyle-suppressions.xml</suppressionsLocation>
-            </configuration>
+            <phase>verify</phase>
             <goals>
               <goal>check</goal>
             </goals>
@@ -281,7 +293,7 @@
         <executions>
           <execution>
             <id>validate_java_and_maven_version</id>
-            <phase>validate</phase>
+            <phase>verify</phase>
             <goals>
               <goal>enforce</goal>
             </goals>
@@ -299,6 +311,7 @@
           </execution>
           <execution>
             <id>avoid_bad_dependencies</id>
+            <phase>verify</phase>
             <goals>
               <goal>enforce</goal>
             </goals>
@@ -366,7 +379,7 @@
         <plugin>
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
-          <version>0.10</version>
+          <version>0.11</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -389,7 +402,8 @@
             <argLine>-Xms512m -Xmx3g -Ddrill.exec.http.enabled=false
               -Ddrill.exec.sys.store.provider.local.write=false
               -Dorg.apache.drill.exec.server.Drillbit.system_options="org.apache.drill.exec.compile.ClassTransformer.scalar_replacement=on"
-              -XX:MaxPermSize=256M -XX:MaxDirectMemorySize=3072M
+              -Ddrill.test.query.printing.silent=true
+              -XX:MaxPermSize=512M -XX:MaxDirectMemorySize=3072M
               -XX:+CMSClassUnloadingEnabled -ea</argLine>
             <forkCount>${forkCount}</forkCount>
             <reuseForks>true</reuseForks>
@@ -1002,6 +1016,10 @@
             <version>${hadoop.version}</version>
             <exclusions>
               <exclusion>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-all</artifactId>
+              </exclusion>              
+              <exclusion>
                 <groupId>javax.servlet</groupId>
                 <artifactId>servlet-api</artifactId>
               </exclusion>
@@ -1238,7 +1256,7 @@
           <dependency>
             <groupId>org.apache.calcite</groupId>
             <artifactId>calcite-core</artifactId>
-            <version>1.4.0-drill-r6</version>
+            <version>1.4.0-drill-r8</version>
             <exclusions>
               <exclusion>
                 <groupId>org.jgrapht</groupId>
@@ -1349,7 +1367,9 @@
         <alt-hadoop>mapr</alt-hadoop>
         <rat.excludeSubprojects>true</rat.excludeSubprojects>
         <hive.version>1.0.0-mapr-1504</hive.version>
-        <hadoop.version>2.5.1-mapr-1503</hadoop.version>
+        <hbase.version>0.98.9-mapr-1503-m7-4.1.0</hbase.version>
+        <hadoop.version>2.7.0-mapr-1506</hadoop.version>
+        <mapr.core.version>4.1.0-mapr</mapr.core.version>
       </properties>
       <dependencyManagement>
         <dependencies>
@@ -1451,6 +1471,10 @@
             <version>${hadoop.version}</version>
             <exclusions>
               <exclusion>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-all</artifactId>
+              </exclusion>              
+              <exclusion>
                 <artifactId>commons-logging</artifactId>
                 <groupId>commons-logging</groupId>
               </exclusion>
@@ -1539,12 +1563,12 @@
           <dependency>
             <groupId>com.mapr.fs</groupId>
             <artifactId>libprotodefs</artifactId>
-            <version>4.1.0-mapr</version>
+            <version>${mapr.core.version}</version>
           </dependency>
           <dependency>
             <groupId>com.mapr.fs</groupId>
             <artifactId>mapr-hbase</artifactId>
-            <version>4.1.0-mapr</version>
+            <version>${mapr.core.version}</version>
             <exclusions>
               <exclusion>
                 <artifactId>slf4j-log4j12</artifactId>
@@ -1579,7 +1603,7 @@
           <dependency>
             <groupId>com.mapr.hadoop</groupId>
             <artifactId>maprfs</artifactId>
-            <version>4.1.0-mapr</version>
+            <version>${mapr.core.version}</version>
           </dependency>
           <dependency>
             <groupId>xerces</groupId>
@@ -1640,7 +1664,7 @@
           <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-client</artifactId>
-            <version>0.98.9-mapr-1503-m7-4.1.0</version>
+            <version>${hbase.version}</version>
             <exclusions>
               <exclusion>
                 <groupId>javax.servlet</groupId>
@@ -1704,7 +1728,7 @@
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-testing-util</artifactId>
             <classifier>tests</classifier>
-            <version>0.98.9-mapr-1503-m7-4.1.0</version>
+            <version>${hbase.version}</version>
             <scope>test</scope>
             <exclusions>
               <exclusion>
@@ -1885,6 +1909,7 @@
     </profile>
   </profiles>
   <modules>
+    <module>tools</module>
     <module>protocol</module>
     <module>common</module>
     <module>exec</module>

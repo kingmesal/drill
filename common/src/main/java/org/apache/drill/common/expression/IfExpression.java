@@ -19,10 +19,13 @@ package org.apache.drill.common.expression;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
 import org.apache.drill.common.expression.visitors.ExprVisitor;
 import org.apache.drill.common.types.TypeProtos.DataMode;
 import org.apache.drill.common.types.TypeProtos.MajorType;
+import org.apache.drill.common.types.TypeProtos.MinorType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,11 +37,13 @@ public class IfExpression extends LogicalExpressionBase {
 
   public final IfCondition ifCondition;
   public final LogicalExpression elseExpression;
+  public final MajorType outputType;
 
-  private IfExpression(ExpressionPosition pos, IfCondition conditions, LogicalExpression elseExpression) {
+  private IfExpression(ExpressionPosition pos, IfCondition conditions, LogicalExpression elseExpression, MajorType outputType) {
     super(pos);
     this.ifCondition = conditions;
     this.elseExpression = elseExpression;
+    this.outputType = outputType;
   }
 
   public static class IfCondition{
@@ -63,6 +68,7 @@ public class IfExpression extends LogicalExpressionBase {
     IfCondition conditions;
     private LogicalExpression elseExpression;
     private ExpressionPosition pos = ExpressionPosition.UNKNOWN;
+    private MajorType outputType;
 
     public Builder setPosition(ExpressionPosition pos) {
       this.pos = pos;
@@ -79,19 +85,40 @@ public class IfExpression extends LogicalExpressionBase {
       return this;
     }
 
+    public Builder setOutputType(MajorType outputType) {
+      this.outputType = outputType;
+      return this;
+    }
+
     public IfExpression build(){
       Preconditions.checkNotNull(pos);
       Preconditions.checkNotNull(conditions);
-      return new IfExpression(pos, conditions, elseExpression);
+      return new IfExpression(pos, conditions, elseExpression, outputType);
     }
 
   }
 
   @Override
   public MajorType getMajorType() {
-    // If the return type of one of the "then" expression or "else" expression is nullable, return "if" expression
-    // type as nullable
+    if (outputType != null) {
+      return outputType;
+    }
+
     MajorType majorType = elseExpression.getMajorType();
+    if (majorType.getMinorType() == MinorType.UNION) {
+      Set<MinorType> subtypes = Sets.newHashSet();
+      for (MinorType subtype : majorType.getSubTypeList()) {
+        subtypes.add(subtype);
+      }
+      for (MinorType subtype : ifCondition.expression.getMajorType().getSubTypeList()) {
+        subtypes.add(subtype);
+      }
+      MajorType.Builder builder = MajorType.newBuilder().setMinorType(MinorType.UNION).setMode(DataMode.OPTIONAL);
+      for (MinorType subtype : subtypes) {
+        builder.addSubType(subtype);
+      }
+      return builder.build();
+    }
     if (majorType.getMode() == DataMode.OPTIONAL) {
       return majorType;
     }

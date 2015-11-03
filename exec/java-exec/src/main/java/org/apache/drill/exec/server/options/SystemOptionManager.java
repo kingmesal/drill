@@ -26,7 +26,7 @@ import java.util.Set;
 
 import com.google.common.collect.Sets;
 import org.apache.commons.collections.IteratorUtils;
-import org.apache.drill.common.config.DrillConfig;
+import org.apache.drill.common.config.LogicalPlanPersistence;
 import org.apache.drill.common.map.CaseInsensitiveMap;
 import org.apache.drill.common.exceptions.UserException;
 import org.apache.drill.exec.ExecConstants;
@@ -92,6 +92,7 @@ public class SystemOptionManager extends BaseOptionManager {
       ExecConstants.PARQUET_VECTOR_FILL_CHECK_THRESHOLD_VALIDATOR,
       ExecConstants.PARQUET_RECORD_READER_IMPLEMENTATION_VALIDATOR,
       ExecConstants.JSON_READER_ALL_TEXT_MODE_VALIDATOR,
+      ExecConstants.ENABLE_UNION_TYPE,
       ExecConstants.TEXT_ESTIMATED_ROW_SIZE,
       ExecConstants.JSON_EXTENDED_TYPES,
       ExecConstants.JSON_READ_NUMBERS_AS_DOUBLE_VALIDATOR,
@@ -149,9 +150,9 @@ public class SystemOptionManager extends BaseOptionManager {
    */
   private PStore<OptionValue> options;
 
-  public SystemOptionManager(final DrillConfig config, final PStoreProvider provider) {
+  public SystemOptionManager(LogicalPlanPersistence lpPersistence, final PStoreProvider provider) {
     this.provider = provider;
-    this.config =  PStoreConfig.newJacksonBuilder(config.getMapper(), OptionValue.class)
+    this.config =  PStoreConfig.newJacksonBuilder(lpPersistence.getMapper(), OptionValue.class)
         .name("sys.options")
         .build();
   }

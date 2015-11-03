@@ -21,10 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Executor;
 
 import org.apache.drill.common.SelfCleaningRunnable;
 import org.apache.drill.common.concurrent.ExtendedLatch;
@@ -36,7 +33,6 @@ import org.apache.drill.exec.proto.GeneralRPCProtos.Ack;
 import org.apache.drill.exec.proto.UserBitShared.QueryId;
 import org.apache.drill.exec.proto.helper.QueryIdHelper;
 import org.apache.drill.exec.rpc.DrillRpcFuture;
-import org.apache.drill.exec.rpc.NamedThreadFactory;
 import org.apache.drill.exec.rpc.RpcException;
 import org.apache.drill.exec.rpc.control.Controller;
 import org.apache.drill.exec.rpc.control.WorkEventBus;
@@ -83,7 +79,7 @@ public class WorkManager implements AutoCloseable {
   private final UserWorker userWorker;
   private final WorkerBee bee;
   private final WorkEventBus workBus;
-  private final ExecutorService executor;
+  private final Executor executor;
   private final StatusThread statusThread;
 
   /**
@@ -95,25 +91,7 @@ public class WorkManager implements AutoCloseable {
     this.bContext = context;
     bee = new WorkerBee(); // TODO should this just be an interface?
     workBus = new WorkEventBus(); // TODO should this just be an interface?
-
-    /*
-     * TODO
-     * This executor isn't bounded in any way and could create an arbitrarily large number of
-     * threads, possibly choking the machine. We should really put an upper bound on the number of
-     * threads that can be created. Ideally, this might be computed based on the number of cores or
-     * some similar metric; ThreadPoolExecutor can impose an upper bound, and might be a better choice.
-     */
-    executor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(),
-        new NamedThreadFactory("WorkManager-")) {
-            @Override
-            protected void afterExecute(final Runnable r, final Throwable t) {
-              if(t != null){
-                logger.error("{}.run() leaked an exception.", r.getClass().getName(), t);
-              }
-              super.afterExecute(r, t);
-            }
-      };
-
+    executor = context.getExecutor();
 
     // TODO references to this escape here (via WorkerBee) before construction is done
     controlMessageWorker = new ControlMessageHandler(bee); // TODO getFragmentRunner(), getForemanForQueryId()
@@ -122,9 +100,13 @@ public class WorkManager implements AutoCloseable {
     dataHandler = new DataResponseHandlerImpl(bee); // TODO only uses startFragmentPendingRemote()
   }
 
-  public void start(final DrillbitEndpoint endpoint, final Controller controller,
-      final DataConnectionCreator data, final ClusterCoordinator coord, final PStoreProvider provider) {
-    dContext = new DrillbitContext(endpoint, bContext, coord, controller, data, workBus, provider, executor);
+  public void start(
+      final DrillbitEndpoint endpoint,
+      final Controller controller,
+      final DataConnectionCreator data,
+      final ClusterCoordinator coord,
+      final PStoreProvider provider) {
+    dContext = new DrillbitContext(endpoint, bContext, coord, controller, data, workBus, provider);
     statusThread.start();
 
     // TODO remove try block once metrics moved from singleton, For now catch to avoid unit test failures
@@ -142,7 +124,7 @@ public class WorkManager implements AutoCloseable {
     }
   }
 
-  public ExecutorService getExecutor() {
+  public Executor getExecutor() {
     return executor;
   }
 
@@ -169,27 +151,6 @@ public class WorkManager implements AutoCloseable {
   @Override
   public void close() throws Exception {
 
-    if (executor != null) {
-      executor.shutdown(); // Disable new tasks from being submitted
-      try {
-        // Wait a while for existing tasks to terminate
-        if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
-          executor.shutdownNow(); // Cancel currently executing tasks
-          // Wait a while for tasks to respond to being cancelled
-          if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
-            logger.error("Pool did not terminate");
-          }
-        }
-      } catch (InterruptedException ie) {
-        logger.warn("Executor interrupted while awaiting termination");
-
-        // (Re-)Cancel if current thread also interrupted
-        executor.shutdownNow();
-        // Preserve interrupt status
-        Thread.currentThread().interrupt();
-      }
-    }
-
     if (!runningFragments.isEmpty()) {
       logger.warn("Closing WorkManager but there are {} running fragments.", runningFragments.size());
       if (logger.isDebugEnabled()) {
@@ -199,10 +160,6 @@ public class WorkManager implements AutoCloseable {
         }
       }
     }
-  }
-
-  private void shutdownAndAwaitTermination(long timeInSeconds) {
-
   }
 
   public DrillbitContext getContext() {

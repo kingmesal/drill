@@ -21,8 +21,6 @@ package org.apache.drill.exec.memory;
 
 import static org.junit.Assert.fail;
 
-import io.netty.buffer.DrillBuf;
-
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
@@ -38,8 +36,8 @@ import org.apache.drill.exec.ops.OperatorStats;
 import org.apache.drill.exec.physical.PhysicalPlan;
 import org.apache.drill.exec.physical.base.PhysicalOperator;
 import org.apache.drill.exec.planner.PhysicalPlanReader;
+import org.apache.drill.exec.planner.PhysicalPlanReaderTestFactory;
 import org.apache.drill.exec.proto.BitControl;
-import org.apache.drill.exec.proto.CoordinationProtos;
 import org.apache.drill.exec.proto.UserBitShared;
 import org.apache.drill.exec.server.Drillbit;
 import org.apache.drill.exec.server.DrillbitContext;
@@ -49,6 +47,8 @@ import org.junit.Test;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+
+import io.netty.buffer.DrillBuf;
 
 public class TestAllocators {
 
@@ -109,7 +109,7 @@ public class TestAllocators {
     FragmentContext fragmentContext2 = new FragmentContext(bitContext, pf2, null, functionRegistry);
 
     // Get a few physical operators. Easiest way is to read a physical plan.
-    PhysicalPlanReader planReader = new PhysicalPlanReader(config, config.getMapper(), CoordinationProtos.DrillbitEndpoint.getDefaultInstance(), storageRegistry);
+    PhysicalPlanReader planReader = PhysicalPlanReaderTestFactory.defaultPhysicalPlanReader(bitContext, storageRegistry);
     PhysicalPlan plan = planReader.readPhysicalPlan(Files.toString(FileUtils.getResourceAsFile(planFile), Charsets.UTF_8));
     List<PhysicalOperator> physicalOperators = plan.getSortedOperators();
     Iterator<PhysicalOperator> physicalOperatorIterator = physicalOperators.iterator();
@@ -128,7 +128,7 @@ public class TestAllocators {
     //Use some bogus operator type to create a new operator context.
     def = new OpProfileDef(physicalOperator1.getOperatorId(), UserBitShared.CoreOperatorType.MOCK_SUB_SCAN_VALUE,
         OperatorContext.getChildCount(physicalOperator1));
-    stats = fragmentContext1.getStats().getOperatorStats(def, fragmentContext1.getAllocator());
+    stats = fragmentContext1.getStats().newOperatorStats(def, fragmentContext1.getAllocator());
 
 
     // Add a couple of Operator Contexts
@@ -143,7 +143,7 @@ public class TestAllocators {
 
     def = new OpProfileDef(physicalOperator4.getOperatorId(), UserBitShared.CoreOperatorType.TEXT_WRITER_VALUE,
         OperatorContext.getChildCount(physicalOperator4));
-    stats = fragmentContext2.getStats().getOperatorStats(def, fragmentContext2.getAllocator());
+    stats = fragmentContext2.getStats().newOperatorStats(def, fragmentContext2.getAllocator());
     OperatorContext oContext22 = fragmentContext2.newOperatorContext(physicalOperator4, stats, true);
     DrillBuf b22=oContext22.getAllocator().buffer(2000000);
 
@@ -157,7 +157,7 @@ public class TestAllocators {
     // New fragment starts an operator that allocates an amount within the limit
     def = new OpProfileDef(physicalOperator5.getOperatorId(), UserBitShared.CoreOperatorType.UNION_VALUE,
         OperatorContext.getChildCount(physicalOperator5));
-    stats = fragmentContext3.getStats().getOperatorStats(def, fragmentContext3.getAllocator());
+    stats = fragmentContext3.getStats().newOperatorStats(def, fragmentContext3.getAllocator());
     OperatorContext oContext31 = fragmentContext3.newOperatorContext(physicalOperator5, stats, true);
 
     DrillBuf b31a = oContext31.getAllocator().buffer(200000);

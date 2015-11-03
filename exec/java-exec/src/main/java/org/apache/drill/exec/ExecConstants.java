@@ -42,14 +42,12 @@ public interface ExecConstants {
   public static final String BIT_RETRY_TIMES = "drill.exec.rpc.bit.server.retry.count";
   public static final String BIT_RETRY_DELAY = "drill.exec.rpc.bit.server.retry.delay";
   public static final String BIT_TIMEOUT = "drill.exec.bit.timeout" ;
-  public static final String STORAGE_ENGINE_SCAN_PACKAGES = "drill.exec.storage.packages";
   public static final String SERVICE_NAME = "drill.exec.cluster-id";
   public static final String INITIAL_BIT_PORT = "drill.exec.rpc.bit.server.port";
   public static final String BIT_RPC_TIMEOUT = "drill.exec.rpc.bit.timeout";
   public static final String INITIAL_USER_PORT = "drill.exec.rpc.user.server.port";
   public static final String USER_RPC_TIMEOUT = "drill.exec.rpc.user.timeout";
   public static final String METRICS_CONTEXT_NAME = "drill.exec.metrics.context";
-  public static final String FUNCTION_PACKAGES = "drill.exec.functions";
   public static final String USE_IP_ADDRESS = "drill.exec.rpc.use.ip";
   public static final String METRICS_JMX_OUTPUT_ENABLED = "drill.exec.metrics.jmx.enabled";
   public static final String METRICS_LOG_OUTPUT_ENABLED = "drill.exec.metrics.log.enabled";
@@ -90,7 +88,6 @@ public interface ExecConstants {
   public static final String SYS_STORE_PROVIDER_LOCAL_ENABLE_WRITE = "drill.exec.sys.store.provider.local.write";
   public static final String IMPERSONATION_ENABLED = "drill.exec.impersonation.enabled";
   public static final String IMPERSONATION_MAX_CHAINED_USER_HOPS = "drill.exec.impersonation.max_chained_user_hops";
-  public static final String USER_AUTHENTICATOR_IMPL_PACKAGES = "drill.exec.security.user.auth.packages";
   public static final String USER_AUTHENTICATION_ENABLED = "drill.exec.security.user.auth.enabled";
   public static final String USER_AUTHENTICATOR_IMPL = "drill.exec.security.user.auth.impl";
   public static final String PAM_AUTHENTICATOR_PROFILES = "drill.exec.security.user.auth.pam_profiles";
@@ -162,6 +159,8 @@ public interface ExecConstants {
   public static OptionValidator MONGO_READER_ALL_TEXT_MODE_VALIDATOR = new BooleanValidator(MONGO_ALL_TEXT_MODE, false);
   public static String MONGO_READER_READ_NUMBERS_AS_DOUBLE = "store.mongo.read_numbers_as_double";
   public static OptionValidator MONGO_READER_READ_NUMBERS_AS_DOUBLE_VALIDATOR = new BooleanValidator(MONGO_READER_READ_NUMBERS_AS_DOUBLE, false);
+
+  public static BooleanValidator ENABLE_UNION_TYPE = new BooleanValidator("exec.enable_union_type", false);
 
   // TODO: We need to add a feature that enables storage plugins to add their own options. Currently we have to declare
   // in core which is not right. Move this option and above two mongo plugin related options once we have the feature.
